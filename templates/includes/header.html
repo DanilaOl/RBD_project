@@ -1,0 +1,60 @@
+<header>
+  <nav class="navbar navbar-light">
+    <div class="container">
+      <ul class="nav nav-pills">
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'games' %}active{% endif %}"
+             href="{{ url_for('games') }}"
+          >
+            Игры
+          </a>
+        </li>
+        <li class="nav nav-item">
+          <a class="nav-link {% if request.endpoint == 'developers' %}active{% endif %}"
+             href="{{ url_for('developers') }}"
+          >
+            Разработчики
+          </a>
+        </li>
+        <li class="nav nav-item">
+          <a class="nav-link {% if request.endpoint == 'publishers' %}active{% endif %}"
+             href="{{ url_for('publishers') }}"
+          >
+            Издатели
+          </a>
+        </li>
+        <li class="nav nav-item">
+          <a class="nav-link {% if request.endpoint == 'genres' %}active{% endif %}"
+             href="{{ url_for('genres') }}"
+          >
+            Жанры
+          </a>
+        </li>
+        {% if not session['username'] %}
+        <li class="nav nav-item">
+          <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}"
+             href="{{ url_for('login') }}"
+          >
+            Войти
+          </a>
+        </li>
+        {% else %}
+        <li class="nav nav-item">
+          <a class="nav-link {% if request.endpoint == 'logout' %}active{% endif %}"
+             href="{{ url_for('logout') }}"
+          >
+            Выйти
+          </a>
+        </li>
+        <li class="nav nav-item">
+          <a class="nav-link {% if request.endpoint == 'current_user' %}active{% endif %}"
+             href="{{ url_for('current_user') }}"
+          >
+            {{ user.username }}
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+</header>

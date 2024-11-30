@@ -1,1 +1,29 @@
 {% extends 'base.html' %}
+{% block title %}Разработчики - Game-Kiroku{% endblock %}
+
+{% block content %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">Name</th>
+        <th scope="col">Country</th>
+        {% if user['role'] == 'admin' %}
+        <th scope="col">Действия</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for developer in developers %}
+        <tr>
+          <td>{{ developer.id_developer }}</td>
+          <td><a href="{{ url_for('developer_detail', id_developer=developer.id_developer) }}">{{ developer.studio_name }}</a></td>
+          <td>{{ developer.country }}</td>
+          {% if user['role'] == 'admin' %}
+          <td><a href="{{ url_for('delete_developer', id_developer=developer.id_developer) }}">Удалить</a></td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

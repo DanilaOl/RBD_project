@@ -26,13 +26,13 @@ def get_all_games(
         search_text: str = None,
         **kwargs: dict[Literal[
             'min_release_date', 'max_release_date', 'min_rating',
-            'max_rating', 'developer', 'publisher'
+            'max_rating', 'id_developer', 'id_publisher'
         ], str]
 ):
     connection = get_connection()
-    query = '''
-    SELECT game.id_game, game.game_name, game.description, game.release_date, 
-    game.rating, developer.studio_name, publisher.publisher_name 
+    query = '''SELECT game.id_game, game.game_name, game.description, 
+    game.release_date, game.rating, developer.studio_name, 
+    publisher.publisher_name 
     FROM game 
     LEFT JOIN developer 
     ON game.id_developer = developer.id_developer 
@@ -46,8 +46,8 @@ def get_all_games(
                           'max_release_date': 'game.release_date <=',
                           'min_rating': 'game.rating >=',
                           'max_rating': 'game.rating <=',
-                          'developer': 'developer.studio_name =',
-                          'publisher': 'publisher.publisher_name ='}
+                          'id_developer': 'developer.id_developer =',
+                          'id_publisher': 'publisher.id_publisher ='}
 
         query_filter_list = []
         if search_text is not None:
@@ -55,16 +55,16 @@ def get_all_games(
             query_filter_args.append(search_text)
 
         for key, value in kwargs.items():
-            query_filter_list.append(f'{filter_mapping[key]} ?')
+            query_filter_list.append(f'{filter_mapping[key]} %s')
             query_filter_args.append(value)
 
-        query += ' WHERE ' + ' AND '.join(query_filter_list)
+        query += '\nWHERE ' + '\nAND '.join(query_filter_list)
 
     order_by_mapping = {'id_game': 'game.id_game',
                         'rating': 'game.rating',
                         'release_date': 'game.release_date'}
 
-    query += f'ORDER BY {order_by_mapping[order_by]} {order_direction}'
+    query += f'\nORDER BY {order_by_mapping[order_by]} {order_direction.upper()}'
 
     try:
         with connection.cursor() as cursor:
@@ -97,13 +97,13 @@ def get_game(game_id):
     query = '''SELECT game.id_game, game.game_name, game.description, 
     game.release_date, game.rating, 
     developer.studio_name, 
-    publisher.studio_name 
+    publisher.publisher_name
     FROM game 
     LEFT JOIN developer 
     ON game.id_developer = developer.id_developer 
     LEFT JOIN publisher 
     ON game.id_publisher = publisher.id_publisher
-    WHERE game.id_game = ?'''
+    WHERE game.id_game = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -130,7 +130,7 @@ def add_game(
     connection = get_connection()
     query = '''INSERT INTO game (game_name, description, release_date, 
     rating, id_developer, id_publisher)
-    VALUES (?, ?, ?, ?, ?)'''
+    VALUES (%s, %s, %s, %s, %s)'''
 
     try:
         with connection.cursor() as cursor:
@@ -152,9 +152,9 @@ def update_game(
         id_developer
 ):
     connection = get_connection()
-    query = '''UPDATE game SET game_name = ?, description = ?, 
-    release_date = ?, id_developer = ?, id_publisher = ? 
-    WHERE id_game = ?'''
+    query = '''UPDATE game SET game_name = %s, description = %s, 
+    release_date = %s, id_developer = %s, id_publisher = %s 
+    WHERE id_game = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -167,7 +167,7 @@ def update_game(
 
 def delete_game(id_game):
     connection = get_connection()
-    query = "DELETE FROM game WHERE id_game = ?"
+    query = "DELETE FROM game WHERE id_game = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -203,7 +203,7 @@ def get_all_users():
 def get_user(id_user):
     connection = get_connection()
     query = '''SELECT id_user, username, password, email FROM user 
-    WHERE id_user = ?'''
+    WHERE id_user = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -219,10 +219,10 @@ def get_user(id_user):
 
 def validate_user(username, password):
     connection = get_connection()
-    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest().upper()
     query = '''SELECT id_user, username, password, email
     FROM users 
-    WHERE username = ?'''
+    WHERE username = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -242,8 +242,8 @@ def validate_user(username, password):
 
 def add_user(username, password, email):
     connection = get_connection()
-    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-    query = "INSERT INTO users (username, password, email) VALUES (?, ?, ?)"
+    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest().upper()
+    query = "INSERT INTO users (username, password, email) VALUES (%s, %s, %s)"
 
     try:
         with connection.cursor() as cursor:
@@ -257,9 +257,9 @@ def add_user(username, password, email):
 
 def update_user(id_user, username, password, email):
     connection = get_connection()
-    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-    query = '''UPDATE users SET username = ?, password = ?, email = ? 
-    WHERE id_user = ?'''
+    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest().upper()
+    query = '''UPDATE users SET username = %s, password = %s, email = %s 
+    WHERE id_user = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -270,7 +270,7 @@ def update_user(id_user, username, password, email):
 
 def delete_user(id_user):
     connection = get_connection()
-    query = "DELETE FROM users WHERE id_user = ?"
+    query = "DELETE FROM users WHERE id_user = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -307,7 +307,7 @@ def get_developer(id_developer):
     connection = get_connection()
     query = '''SELECT id_developer, studio_name, country
     FROM developer
-    WHERE id_developer = ?'''
+    WHERE id_developer = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -324,7 +324,7 @@ def get_developer(id_developer):
 
 def add_developer(studio_name, country=None):
     connection = get_connection()
-    query = '''INSERT INTO developer (studio_name, country) VALUES (?, ?)'''
+    query = '''INSERT INTO developer (studio_name, country) VALUES (%s, %s)'''
 
     try:
         with connection.cursor() as cursor:
@@ -336,8 +336,8 @@ def add_developer(studio_name, country=None):
 
 def update_developer(id_developer, studio_name, country=None):
     connection = get_connection()
-    query = '''UPDATE developer SET studio_name = ?, country = ? 
-    WHERE id_developer = ?'''
+    query = '''UPDATE developer SET studio_name = %s, country = %s 
+    WHERE id_developer = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -349,7 +349,7 @@ def update_developer(id_developer, studio_name, country=None):
 
 def delete_developer(id_developer):
     connection = get_connection()
-    query = "DELETE FROM developer WHERE id_developer = ?"
+    query = "DELETE FROM developer WHERE id_developer = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -387,7 +387,7 @@ def get_publisher(id_publisher):
     connection = get_connection()
     query = '''SELECT id_publisher, publisher_name, country
     FROM publisher
-    WHERE id_publisher = ?'''
+    WHERE id_publisher = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -403,7 +403,7 @@ def get_publisher(id_publisher):
 
 def add_publisher(publisher_name, country=None):
     connection = get_connection()
-    query = "INSERT INTO publisher (publisher_name, country) VALUES (?, ?)"
+    query = "INSERT INTO publisher (publisher_name, country) VALUES (%s, %s)"
 
     try:
         with connection.cursor() as cursor:
@@ -415,8 +415,8 @@ def add_publisher(publisher_name, country=None):
 
 def update_publisher(id_publisher, publisher_name, country=None):
     connection = get_connection()
-    query = '''UPDATE publisher SET publisher_name = ?, country = ?
-    WHERE id_publisher = ?'''
+    query = '''UPDATE publisher SET publisher_name = %s, country = %s
+    WHERE id_publisher = %s'''
 
     try:
         with connection.cursor() as cursor:
@@ -428,7 +428,7 @@ def update_publisher(id_publisher, publisher_name, country=None):
 
 def delete_publisher(id_publisher):
     connection = get_connection()
-    query = "DELETE FROM publisher WHERE id_publisher = ?"
+    query = "DELETE FROM publisher WHERE id_publisher = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -447,11 +447,11 @@ def get_comments(id_game=None, id_user=None):
     filter_args = []
 
     if id_game is not None:
-        filter_list.append('id_game=?')
+        filter_list.append('id_game=%s')
         filter_args.append(id_game)
 
     if id_user is not None:
-        filter_list.append('id_user=?')
+        filter_list.append('id_user=%s')
         filter_args.append(id_user)
 
     if filter_list:
@@ -481,7 +481,7 @@ def get_comments(id_game=None, id_user=None):
 
 def add_comment(id_game, id_user, comment):
     connection = get_connection()
-    query = "INSERT INTO comment (id_game, id_user, comment) VALUES (?, ?, ?)"
+    query = "INSERT INTO comment (id_game, id_user, comment) VALUES (%s, %s, %s)"
 
     try:
         with connection.cursor() as cursor:
@@ -493,7 +493,7 @@ def add_comment(id_game, id_user, comment):
 
 def update_comment(id_game, id_user, text):
     connection = get_connection()
-    query = "UPDATE comment SET text = ? WHERE id_game = ? AND id_user = ?"
+    query = "UPDATE comment SET text = %s WHERE id_game = %s AND id_user = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -505,7 +505,7 @@ def update_comment(id_game, id_user, text):
 
 def delete_comment(id_game, id_user):
     connection = get_connection()
-    query = "DELETE FROM comment WHERE id_game = ? AND id_user = ?"
+    query = "DELETE FROM comment WHERE id_game = %s AND id_user = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -540,7 +540,7 @@ def get_all_genres():
 
 def get_genre(id_genre):
     connection = get_connection()
-    query = "SELECT id_genre, genre_name FROM genre WHERE id_genre = ?"
+    query = "SELECT id_genre, genre_name FROM genre WHERE id_genre = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -557,7 +557,7 @@ def get_genre(id_genre):
 
 def add_genre(genre_name):
     connection = get_connection()
-    query = "INSERT INTO genre (genre_name) VALUES (?)"
+    query = "INSERT INTO genre (genre_name) VALUES (%s)"
 
     try:
         with connection.cursor() as cursor:
@@ -569,7 +569,7 @@ def add_genre(genre_name):
 
 def update_genre(id_genre, genre_name):
     connection = get_connection()
-    query = "UPDATE genre SET genre_name = ? WHERE id_genre = ?"
+    query = "UPDATE genre SET genre_name = %s WHERE id_genre = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -581,7 +581,7 @@ def update_genre(id_genre, genre_name):
 
 def delete_genre(id_genre):
     connection = get_connection()
-    query = "DELETE FROM genre WHERE id_genre = ?"
+    query = "DELETE FROM genre WHERE id_genre = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -594,7 +594,7 @@ def delete_genre(id_genre):
 def validate_admin(login, password):
     connection = get_connection()
     password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-    query = "SELECT id, login, password FROM admin WHERE login = ?"
+    query = "SELECT id, login, password FROM admin WHERE login = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -614,7 +614,7 @@ def validate_admin(login, password):
 def add_admin(login, password):
     connection = get_connection()
     password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
-    query = "INSERT INTO admin (login, password) VALUES (?, ?)"
+    query = "INSERT INTO admin (login, password) VALUES (%s, %s)"
 
     try:
         with connection.cursor() as cursor:
@@ -632,11 +632,11 @@ def get_genre_of_game(id_game=None, id_genre=None):
     filter_args = []
 
     if id_game is not None:
-        filter_list.append('id_game=?')
+        filter_list.append('id_game=%s')
         filter_args.append(id_game)
 
     if id_genre is not None:
-        filter_list.append('id_genre=?')
+        filter_list.append('id_genre=%s')
         filter_args.append(id_genre)
 
     if filter_list:
@@ -666,7 +666,7 @@ def get_genre_of_game(id_game=None, id_genre=None):
 
 def add_genre_of_game(id_game, id_genre):
     connection = get_connection()
-    query = "INSERT INTO genre_of_game (id_game, id_genre) VALUES (?, ?)"
+    query = "INSERT INTO genre_of_game (id_game, id_genre) VALUES (%s, %s)"
 
     try:
         with connection.cursor() as cursor:
@@ -678,7 +678,7 @@ def add_genre_of_game(id_game, id_genre):
 
 def delete_genre_of_game(id_game, id_genre):
     connection = get_connection()
-    query = "DELETE FROM genre_of_game WHERE id_game = ? AND id_genre = ?"
+    query = "DELETE FROM genre_of_game WHERE id_game = %s AND id_genre = %s"
 
     try:
         with connection.cursor() as cursor:
@@ -696,11 +696,11 @@ def get_list(id_game=None, id_user=None):
     filter_args = []
 
     if id_game is not None:
-        filter_list.append('id_game=?')
+        filter_list.append("id_game = %s")
         filter_args.append(id_game)
 
     if id_user is not None:
-        filter_list.append('id_user=?')
+        filter_list.append("id_user = %s")
         filter_args.append(id_user)
 
     if filter_list:
@@ -709,7 +709,7 @@ def get_list(id_game=None, id_user=None):
     try:
         with connection.cursor() as cursor:
             if filter_list:
-                cursor.execute(query, tuple(filter_list))
+                cursor.execute(query, tuple(filter_args))
             else:
                 cursor.execute(query)
             lists = cursor.fetchall()
@@ -721,6 +721,8 @@ def get_list(id_game=None, id_user=None):
             temp_dict = {}
             for key, value in zip(column_names, list):
                 temp_dict[key] = value
+                if key == 'rated':
+                    temp_dict[key] = int(value)
             lists_dict.append(temp_dict)
 
         return lists_dict
@@ -731,7 +733,7 @@ def get_list(id_game=None, id_user=None):
 def add_list(id_game, id_user, list_type, rated=None):
     connection = get_connection()
     query = '''INSERT INTO list (id_game, id_user, list_type, rated) 
-    VALUES (?, ?, ?, ?)'''
+    VALUES (%s, %s, %s, %s)'''
 
     try:
         with connection.cursor() as cursor:
@@ -749,10 +751,10 @@ def update_list(id_game, id_user, list_type=None, rated=None):
     updates_args = []
 
     if list_type is not None:
-        updates_list.append('list_type=?')
+        updates_list.append('list_type=%s')
         updates_args.append(list_type)
     if rated is not None:
-        updates_list.append('rated=?')
+        updates_list.append('rated=%s')
         updates_args.append(rated)
 
     if not updates_list:
@@ -760,7 +762,7 @@ def update_list(id_game, id_user, list_type=None, rated=None):
 
     query += ', '.join(updates_list)
 
-    query += ' WHERE id_game=? AND id_user=?'
+    query += ' WHERE id_game=%s AND id_user=%s'
 
     try:
         with connection.cursor() as cursor:
@@ -772,7 +774,7 @@ def update_list(id_game, id_user, list_type=None, rated=None):
 
 def delete_list(id_game, id_user):
     connection = get_connection()
-    query = "DELETE FROM list WHERE id_game=? AND id_user=?"
+    query = "DELETE FROM list WHERE id_game=%s AND id_user=%s"
 
     try:
         with connection.cursor() as cursor:

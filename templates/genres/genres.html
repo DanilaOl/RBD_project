@@ -1,1 +1,27 @@
 {% extends 'base.html' %}
+{% block title %}Жанры - Game-Kiroku{% endblock %}
+
+{% block content %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">Name</th>
+        {% if user['role'] == 'admin' %}
+        <th scope="col">Действия</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for genre in genres %}
+        <tr>
+          <td>{{ genre.id_genre }}</td>
+          <td><a href="{{ url_for('genre_detail', id_genre=genre.id_genre) }}">{{ genre.genre_name }}</a></td>
+          {% if user['role'] == 'admin' %}
+          <td><a href="{{ url_for('delete_genre', id_genre=genre.id_genre) }}">Удалить</a></td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

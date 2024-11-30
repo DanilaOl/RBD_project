@@ -1,1 +1,29 @@
 {% extends 'base.html' %}
+{% block title %}Издатели - Game-Kiroku{% endblock %}
+
+{% block content %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">Name</th>
+        <th scope="col">Country</th>
+        {% if user['role'] == 'admin' %}
+        <th scope="col">Действия</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for publisher in publishers %}
+        <tr>
+          <td>{{ publisher.id_publisher }}</td>
+          <td><a href="{{ url_for('publisher_detail', id_publisher=publisher.id_publisher) }}">{{ publisher.publisher_name }}</a></td>
+          <td>{{ publisher.country }}</td>
+          {% if user['role'] == 'admin' %}
+          <td><a href="{{ url_for('delete_publisher', id_publisher=publisher.id_publisher) }}">Удалить</a></td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

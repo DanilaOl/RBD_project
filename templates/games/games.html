@@ -7,21 +7,34 @@
 {% block content %}
   <form method="GET">
     <p>Параметр сортировки</p>
-    <input type="radio" class="btn-check" name="order_by" id="order_id_game" autocomplete="off" checked>
+    <input type="radio" class="btn-check" name="order_by" id="order_id_game" value="id_game" autocomplete="off" checked>
     <label class="btn btn-primary" for="order_id_game">Id</label>
 
-    <input type="radio" class="btn-check" name="order_by" id="order_rating" autocomplete="off">
+    <input type="radio" class="btn-check" name="order_by" id="order_rating" value="rating" autocomplete="off">
     <label class="btn btn-primary" for="order_rating">Rating</label>
 
-    <input type="radio" class="btn-check" name="order_by" id="order_release_date" autocomplete="off">
+    <input type="radio" class="btn-check" name="order_by" id="order_release_date" value="release_date" autocomplete="off">
     <label class="btn btn-primary" for="order_release_date">Release Date</label>
 
     <p>Порядок сортировки</p>
-    <input type="radio" class="btn-check" name="order_direction" id="asc" autocomplete="off" checked>
-    <label class="btn btn-primary" for="asc">Ascending</label>
+    <input type="radio" class="btn-check" name="order_direction" id="order_dir_asc" value="asc" autocomplete="off" checked>
+    <label class="btn btn-primary" for="order_dir_asc">Ascending</label>
 
-    <input type="radio" class="btn-check" name="order_direction" id="desc" autocomplete="off">
-    <label class="btn btn-primary" for="desc">Descending</label>
+    <input type="radio" class="btn-check" name="order_direction" id="order_dir_desc" value="desc" autocomplete="off">
+    <label class="btn btn-primary" for="order_dir_desc">Descending</label>
+    <select name="id_developer" class="form-select" id="developer_select">
+        <option value="none" selected>Developer</option>
+        {% for developer in developers %}
+            <option value="{{ developer.id_developer }}">{{ developer.studio_name }}</option>
+        {% endfor %}
+    </select>
+    <select name="id_publisher" class="form-select" id="publisher_select">
+        <option value="none" selected>Publisher</option>
+        {% for publisher in publishers %}
+            <option value="{{ publisher.id_publisher }}">{{ publisher.publisher_name }}</option>
+        {% endfor %}
+    </select>
+    <input class="btn btn-primary" type="submit" value="Фильтр">
   </form>
   <table class="table table-striped">
     <thead>
@@ -32,7 +45,7 @@
         <th scope="col">Rating</th>
         <th scope="col">Developer</th>
         <th scope="col">Publisher</th>
-        {% if session['role'] == 'admin' %}
+        {% if user['role'] == 'admin' %}
         <th scope="col">Действия</th>
         {% endif %}
       </tr>
@@ -40,13 +53,13 @@
     <tbody>
       {% for game in games %}
         <tr>
+          <td>{{ game.id_game }}</td>
           <td><a href="{{ url_for('game_detail', id_game=game.id_game) }}">{{ game.game_name }}</a></td>
-          <td>{{ game.game_name }}</td>
           <td>{{ game.release_date }}</td>
           <td>{{ game.rating }}</td>
           <td>{{ game.developer }}</td>
           <td>{{ game.publisher }}</td>
-          {% if session['role'] == 'admin' %}
+          {% if user['role'] == 'admin' %}
           <td><a href="{{ url_for('delete_game', id_game=game.id_game) }}">Удалить</a></td>
           {% endif %}
         </tr>

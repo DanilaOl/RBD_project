@@ -30,7 +30,9 @@
             Жанры
           </a>
         </li>
-        {% if not session['username'] %}
+      </ul>
+      <ul class="nav nav-pills">
+        {% if not user %}
         <li class="nav nav-item">
           <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}"
              href="{{ url_for('login') }}"
@@ -40,17 +42,17 @@
         </li>
         {% else %}
         <li class="nav nav-item">
+          <a class="nav-link {% if request.endpoint == 'current_user' %}active{% endif %}"
+             href="{{ url_for('current_user', id_user=user.id_user) }}"
+          >
+            {{ user.username }}
+          </a>
+        </li>
+        <li class="nav nav-item">
           <a class="nav-link {% if request.endpoint == 'logout' %}active{% endif %}"
              href="{{ url_for('logout') }}"
           >
             Выйти
-          </a>
-        </li>
-        <li class="nav nav-item">
-          <a class="nav-link {% if request.endpoint == 'current_user' %}active{% endif %}"
-             href="{{ url_for('current_user') }}"
-          >
-            {{ user.username }}
           </a>
         </li>
         {% endif %}

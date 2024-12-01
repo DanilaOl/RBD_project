@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Изменение {{ user.username }} - Game-Kiroku
+{% endblock %}
+
+{% block content %}
+  <form method="post" class="col-5">
+    <div class="mb-3">
+      <label for="username_input" class="form-label">Имя пользователя</label>
+      <input type="text" class="form-control" id="username_input" name="user_username" required value="{{ user_info.username }}">
+    </div>
+    <div class="mb-3">
+      <label for="email_input" class="form-label">Email</label>
+      <input type="email" class="form-control" name="user_email" id="email_input" required value="{{ user_info.email }}">
+    </div>
+    <div class="mb-3">
+      <label for="old_password_input" class="form-label">Старый пароль (оставьте пустым, если не нужно менять)</label>
+      <input type="password" class="form-control" name="old_password" id="old_password_input">
+    </div>
+    <div class="mb-3">
+      <label for="new_password_input" class="form-label">Новый пароль</label>
+      <input type="password" class="form-control" name="new_password" id="new_password_input">
+    </div>
+    <div class="mb-3">
+      <label for="new_password_repeat_input" class="form-label">Повторите новый пароль</label>
+      <input type="password" name="new_password_repeat" id="new_password_repeat_input" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary">Изменить</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Обновление {{ game.game_name }} - Game-Kiroku
+{% endblock %}
+
+{% block content %}
+  <form method="post" class="col-5">
+    <div class="mb-3">
+      <label for="game_name_input" class="form-label">Название</label>
+      <input type="text" class="form-control" id="game_name_input" name="game_name" required
+              {% if update %}
+             value="{{ game.game_name }}"
+              {% endif %}
+      >
+    </div>
+    <div class="mb-3">
+      <label for="description_input" class="form-label">Описание</label>
+      <textarea id="description_input" class="form-control" name="game_description">{% if update and game.description is not none %}{{ game.description }}{% endif %}</textarea>
+    </div>
+    <div class="mb-3">
+      <label for="release_date_input" class="form-label">Дата выхода</label>
+      <input type="date" class="form-control" id="release_date_input" name="game_release_date" required
+              {% if update %}
+             value="{{ game.release_date }}"
+              {% endif %}
+      >
+    </div>
+    <div class="mb-3">
+      <label for="game_developer_input" class="form-label">Разработчик</label>
+      <select class="form-select" name="game_developer" id="game_developer_input">
+        {% for developer in developers %}
+          <option value="{{ developer.id_developer }}"
+                  {% if update and game.developer == developer.studio_name %}
+                  selected
+                  {% endif %}
+          >
+            {{ developer.studio_name }}
+          </option>
+        {% endfor %}
+
+      </select>
+    </div>
+    <div class="mb-3">
+      <label for="game_publisher_input" class="form-label">Издатель</label>
+      <select class="form-select" name="game_publisher" id="game_publisher_input">
+        <option value="none" {% if not update or game.publisher is none %}selected{% endif %}>Нет</option>
+        {% for publisher in publishers %}
+          <option value="{{ publisher.id_publisher }}"
+                  {% if update and game.publisher == publisher.publisher_name %}
+                  selected
+                  {% endif %}
+          >
+            {{ publisher.publisher_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      {% if update %}
+        Изменить
+      {% else %}
+        Создать
+      {% endif %}
+    </button>
+
+  </form>
+{% endblock %}

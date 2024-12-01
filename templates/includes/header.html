@@ -30,6 +30,15 @@
             Жанры
           </a>
         </li>
+        {% if user and user.role == 'admin' %}
+          <li class="nav nav-item">
+            <a class="nav-link {% if request.endpoint == 'users' %}active{% endif %}"
+               href="{{ url_for('users') }}"
+            >
+              Пользователи
+            </a>
+          </li>
+        {% endif %}
       </ul>
       <ul class="nav nav-pills">
         {% if not user %}
@@ -41,13 +50,19 @@
           </a>
         </li>
         {% else %}
-        <li class="nav nav-item">
-          <a class="nav-link {% if request.endpoint == 'current_user' %}active{% endif %}"
-             href="{{ url_for('current_user', id_user=user.id_user) }}"
-          >
-            {{ user.username }}
-          </a>
-        </li>
+          {% if user.role == 'admin' %}
+            <li class="nav nav-item">
+              <span class="align-self-center">Администратор {{ user.username }}</span>
+            </li>
+          {% else %}
+            <li class="nav nav-item">
+              <a class="nav-link {% if request.endpoint == 'current_user' %}active{% endif %}"
+                 href="{{ url_for('user_detail', id_user=user.id_user) }}"
+              >
+                {{ user.username }}
+              </a>
+            </li>
+          {% endif %}
         <li class="nav nav-item">
           <a class="nav-link {% if request.endpoint == 'logout' %}active{% endif %}"
              href="{{ url_for('logout') }}"

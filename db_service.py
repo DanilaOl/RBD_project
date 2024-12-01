@@ -23,10 +23,9 @@ def get_connection():
 def get_all_games(
         order_by: Literal['id_game', 'rating', 'release_date'] = 'id_game',
         order_direction: Literal['asc', 'desc'] = 'asc',
-        search_text: str = None,
         **kwargs: dict[Literal[
             'min_release_date', 'max_release_date', 'min_rating',
-            'max_rating', 'id_developer', 'id_publisher'
+            'max_rating', 'id_developer', 'id_publisher', 'search_text'
         ], str]
 ):
     connection = get_connection()
@@ -42,21 +41,24 @@ def get_all_games(
 
     query_filter_args = []
     if len(kwargs) > 0:
-        filter_mapping = {'min_release_date': 'game.release_date >=',
-                          'max_release_date': 'game.release_date <=',
-                          'min_rating': 'game.rating >=',
-                          'max_rating': 'game.rating <=',
-                          'id_developer': 'developer.id_developer =',
-                          'id_publisher': 'publisher.id_publisher ='}
+        filter_mapping = {
+            'min_release_date': 'game.release_date >= %s',
+            'max_release_date': 'game.release_date <= %s',
+            'min_rating': 'game.rating >= %s',
+            'max_rating': 'game.rating <= %s',
+            'id_developer': 'developer.id_developer =%s',
+            'id_publisher': 'publisher.id_publisher =%s',
+            'search_text': "game.game_name LIKE %s "
+        }
 
         query_filter_list = []
-        if search_text is not None:
-            query_filter_list.append("game.game_name LIKE '%?%'")
-            query_filter_args.append(search_text)
 
         for key, value in kwargs.items():
-            query_filter_list.append(f'{filter_mapping[key]} %s')
-            query_filter_args.append(value)
+            query_filter_list.append(filter_mapping[key])
+            if key == 'search_text':
+                query_filter_args.append(f'%{value}%')
+            else:
+                query_filter_args.append(value)
 
         query += '\nWHERE ' + '\nAND '.join(query_filter_list)
 
@@ -69,7 +71,8 @@ def get_all_games(
     try:
         with connection.cursor() as cursor:
             if query_filter_args:
-                cursor.execute(query, tuple(query_filter_args))
+                print(query)
+                cursor.execute(query, query_filter_args)
             else:
                 cursor.execute(query)
             games = cursor.fetchall()
@@ -179,7 +182,9 @@ def delete_game(id_game):
 
 def get_all_users():
     connection = get_connection()
-    query = "SELECT id_user, username, password, email FROM users"
+    query = '''SELECT id_user, username, password, email 
+    FROM users 
+    ORDER BY id_user'''
 
     try:
         with connection.cursor() as cursor:
@@ -202,7 +207,7 @@ def get_all_users():
 
 def get_user(id_user):
     connection = get_connection()
-    query = '''SELECT id_user, username, password, email FROM user 
+    query = '''SELECT id_user, username, password, email FROM users 
     WHERE id_user = %s'''
 
     try:
@@ -255,15 +260,38 @@ def add_user(username, password, email):
         connection.close()
 
 
-def update_user(id_user, username, password, email):
+def update_user(id_user, username=None, password=None, email=None):
     connection = get_connection()
-    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest().upper()
-    query = '''UPDATE users SET username = %s, password = %s, email = %s 
-    WHERE id_user = %s'''
+
+    to_update_list = []
+    to_update_args = []
+
+    query = "UPDATE users SET "
+
+    if username is not None:
+        to_update_list.append('username=%s')
+        to_update_args.append(username)
+    if password is not None:
+        to_update_list.append('password=%s')
+        password_hash = (hashlib.sha256(password.encode('utf-8'))
+                         .hexdigest().upper())
+        to_update_args.append(password_hash)
+    if email is not None:
+        to_update_list.append('email=%s')
+        to_update_args.append(email)
+
+    if not to_update_list:
+        connection.close()
+        return
+
+    query += ', '.join(to_update_list)
+    query += ' WHERE id_user = %s'
+    to_update_args.append(id_user)
 
     try:
         with connection.cursor() as cursor:
-            cursor.execute(query, (username, password_hash, email, id_user))
+            cursor.execute(query, tuple(to_update_args))
+        connection.commit()
     finally:
         connection.close()
 
@@ -593,7 +621,7 @@ def delete_genre(id_genre):
 
 def validate_admin(login, password):
     connection = get_connection()
-    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest().upper()
     query = "SELECT id, login, password FROM admin WHERE login = %s"
 
     try:
@@ -690,17 +718,20 @@ def delete_genre_of_game(id_game, id_genre):
 
 def get_list(id_game=None, id_user=None):
     connection = get_connection()
-    query = "SELECT id_game, id_user, list_type, rated FROM list"
+    query = '''SELECT list.id_game, list.id_user, list.list_type, list.rated, game.game_name, users.username
+    FROM list
+    JOIN users ON list.id_user = users.id_user
+    JOIN game ON list.id_game = game.id_game'''
 
     filter_list = []
     filter_args = []
 
     if id_game is not None:
-        filter_list.append("id_game = %s")
+        filter_list.append("list.id_game = %s")
         filter_args.append(id_game)
 
     if id_user is not None:
-        filter_list.append("id_user = %s")
+        filter_list.append("list.id_user = %s")
         filter_args.append(id_user)
 
     if filter_list:
@@ -712,16 +743,16 @@ def get_list(id_game=None, id_user=None):
                 cursor.execute(query, tuple(filter_args))
             else:
                 cursor.execute(query)
-            lists = cursor.fetchall()
+            user_lists = cursor.fetchall()
 
-        column_names = ['id_game', 'id_user', 'list_type', 'rated']
+        column_names = ['id_game', 'id_user', 'list_type', 'rated', 'game_name', 'username']
         lists_dict = []
 
-        for list in lists:
+        for user_list in user_lists:
             temp_dict = {}
-            for key, value in zip(column_names, list):
+            for key, value in zip(column_names, user_list):
                 temp_dict[key] = value
-                if key == 'rated':
+                if key == 'rated' and value is not None:
                     temp_dict[key] = int(value)
             lists_dict.append(temp_dict)
 
@@ -743,30 +774,13 @@ def add_list(id_game, id_user, list_type, rated=None):
         connection.close()
 
 
-def update_list(id_game, id_user, list_type=None, rated=None):
+def update_list(id_game, id_user, list_type, rated=None):
     connection = get_connection()
-    query = "UPDATE list SET "
-
-    updates_list = []
-    updates_args = []
-
-    if list_type is not None:
-        updates_list.append('list_type=%s')
-        updates_args.append(list_type)
-    if rated is not None:
-        updates_list.append('rated=%s')
-        updates_args.append(rated)
-
-    if not updates_list:
-        return
-
-    query += ', '.join(updates_list)
-
-    query += ' WHERE id_game=%s AND id_user=%s'
+    query = "UPDATE list SET list_type=%s, rated=%s WHERE id_game=%s AND id_user=%s"
 
     try:
         with connection.cursor() as cursor:
-            cursor.execute(query, (*updates_args, id_game, id_user))
+            cursor.execute(query, (list_type, rated, id_game, id_user))
         connection.commit()
     finally:
         connection.close()

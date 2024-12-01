@@ -1,24 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}
-	Вход - Game-Kiroku
+  Вход - Game-Kiroku
 {% endblock %}
 
 {% block content %}
-  {% with messages = get_flashed_messages(with_categories=True) %}
-    {% if messages %}
-    	{% for category, message in messages %}
-    		<p class="{% if category == 'error' %}
-    		text-danger alert-danger
-        {% elif category == 'info' %}
-        text-success alert-success
-        {% endif %}
-        m-auto text-center w-50 fs-4"
-        >
-          {{ message }}
-        </p>
-    	{% endfor %}
-    {% endif %} 
-  {% endwith %}
   <form method="post" class="text-center border p-3 w-50 m-auto">
     <label for="username_input" class="form-label">Логин</label>
     <input type="text" class="form-control" name="username" id="username_input">

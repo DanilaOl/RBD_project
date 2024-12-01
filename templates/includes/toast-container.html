@@ -1,0 +1,29 @@
+{% with messages = get_flashed_messages(with_categories=True) %}
+  {% if messages %}
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      {% for category, message in messages %}
+        <div class="toast
+               {% if category == 'error' %}
+               text-bg-danger
+               {% elif category == 'success' %}
+               text-bg-success
+               {% endif %} show"
+             role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="toast-header">
+            {% if category == 'error' %}
+            <strong class="me-auto">Ошибка</strong>
+            {% elif category == 'success' %}
+            <strong class="me-auto">Успех</strong>
+            {% else %}
+            <strong class="me-auto">{{ category|capitalize }}</strong>
+            {% endif %}
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+            {{ message }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}

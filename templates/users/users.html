@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}
+	Пользователи - Game-Kiroku
+{% endblock %}
+
+{% block content %}
+	<table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">Имя пользователя</th>
+        <th scope="col">Email</th>
+        <th scope="col">Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      	<tr>
+          <td>{{ user.id_user }}</td>
+          <td><a href="{{ url_for('user_detail', id_user=user.id_user) }}">{{ user.username }}</a></td>
+          <td>{{ user.email }}</td>
+          <td><a href="{{ url_for('delete_user', id_user=user.id_user) }}">Удалить</a></td>
+        </tr>
+      {% endfor %}
+
+    </tbody>
+
+  </table>
+{% endblock %}

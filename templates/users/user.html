@@ -1,1 +1,62 @@
 {% extends 'base.html' %}
+
+{% block title %}
+  {{ user_info.username }} - Game-Kiroku
+{% endblock %}
+
+{% block content %}
+  <h2><b>{{ user_info.username }}</b></h2>
+  <p>{{ user_info.email }}</p>
+  {% if user.id_user == user_info.id_user and user.role != 'admin' %}
+    <a href="{{ url_for('update_user', id_user=user.id_user) }}">Изменить</a>
+  {% endif %}
+
+  {% if categorized_user_lists %}
+    <p class="fs-4"><b>Игры пользователя</b></p>
+    <div class="row">
+      {% for category, user_lists in categorized_user_lists.items() %}
+        {% if user_lists %}
+          <div class="col-6">
+            <p class="fs-4 mb-2">
+              {% if category == 'planned' %}
+                Запланировано
+              {% elif category == 'playing' %}
+                Играю
+              {% elif category == 'postponed' %}
+                Отложено
+              {% elif category == 'completed' %}
+                Пройдено
+              {% endif %}
+            </p>
+            <table class="table table-hover table-borderless">
+              <thead>
+                <tr>
+                  <th scope="col" class="">Название</th>
+                  <th scope="col">Оценка</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user_list in user_lists %}
+                  <tr>
+                    <td>
+                      <a href="{{ url_for('game_detail', id_game=user_list.id_game) }}">{{ user_list.game_name }}</a>
+                    </td>
+                    <td>
+                      {% if user_list.rated %}
+                        {{ user_list.rated }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+
+  {% endif %}
+{% endblock %}

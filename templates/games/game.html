@@ -2,60 +2,62 @@
 {% block title %}{{ game.game_name }} - Game-Kiroku{% endblock %}
 
 {% block content %}
+
+
   <div class="row">
+    <ul class="col">
+      <li>{{ game.game_name }}</li>
+      <li>Рейтинг: {{ game.rating }}</li>
+      <li>Дата выхода: {{ game.release_date }}</li>
+      <li>Разработчик: {{ game.developer }}</li>
+      {% if game.publisher %}
+        <li>Издатель: {{ game.publisher }}</li>
+      {% endif %}
+      {% if game.description %}
+        <li>{{ game.description }}</li>
+      {% endif %}
+    </ul>
 
-
-  <ul class="col">
-    <li>{{ game.game_name }}</li>
-    <li>Рейтинг: {{ game.rating }}</li>
-    <li>Дата выхода: {{ game.release_date }}</li>
-    <li>Разработчик: {{ game.developer }}</li>
-    {% if game.publisher %}
-    	<li>Издатель: {{ game.publisher }}</li>
+    {% if user and user['role'] != 'admin' %}
+      <form method="post" class="col-4">
+        <select class="form-select" name="list_type">
+          <option value="planned"
+                  {% if user_game_list is none or user_game_list.list_type == 'planned' %}
+                  selected
+                  {% endif %}
+          >
+            Запланировано
+          </option>
+          <option value="playing" {% if user_game_list.list_type == 'playing' %}selected{% endif %}>Играю</option>
+          <option value="postponed" {% if user_game_list.list_type == 'postponed' %}selected{% endif %}>Отложено
+          </option>
+          <option value="completed" {% if user_game_list.list_type == 'completed' %}selected{% endif %}>Пройдено
+          </option>
+          {% if user_game_list is not none %}
+            <option value="delete" class="text_danger alert-danger">Удалить</option>
+          {% endif %}
+        </select>
+        <select class="form-select" name="rated">
+          <option value="none"
+                  {% if user_game_list is none or user_game_list.rated is none %}
+                  selected
+                  {% endif %}
+          >
+            Оценка
+          </option>
+          <option value="1" {% if user_game_list.rated == 1 %}selected{% endif %}>1</option>
+          <option value="2" {% if user_game_list.rated == 2 %}selected{% endif %}>2</option>
+          <option value="3" {% if user_game_list.rated == 3 %}selected{% endif %}>3</option>
+          <option value="4" {% if user_game_list.rated == 4 %}selected{% endif %}>4</option>
+          <option value="5" {% if user_game_list.rated == 5 %}selected{% endif %}>5</option>
+          <option value="6" {% if user_game_list.rated == 6 %}selected{% endif %}>6</option>
+          <option value="7" {% if user_game_list.rated == 7 %}selected{% endif %}>7</option>
+          <option value="8" {% if user_game_list.rated == 8 %}selected{% endif %}>8</option>
+          <option value="9" {% if user_game_list.rated == 9 %}selected{% endif %}>9</option>
+          <option value="10" {% if user_game_list.rated == 10 %}selected{% endif %}>10</option>
+        </select>
+        <input class="btn btn-primary" type="submit" value="Добавить в список">
+      </form>
     {% endif %}
-    {% if game.description %}
-      <li>{{ game.description }}</li>
-    {% endif %}
-  </ul>
-
-  {% if user and user['role'] != 'admin' %}
-    <form method="post" class="col-4">
-      <select class="form-select" name="list_type">
-        <option value="planned"
-                {% if user_game_list is none or user_game_list.list_type == 'planned' %}
-                selected
-                {% endif %}
-        >
-          Запланировано
-        </option>
-        <option value="playing" {% if user_game_list.list_type == 'playing' %}selected{% endif %}>Играю</option>
-        <option value="postponed" {% if user_game_list.list_type == 'postponed' %}selected{% endif %}>Отложено</option>
-        <option value="completed" {% if user_game_list.list_type == 'completed' %}selected{% endif %}>Пройдено</option>
-        {% if user_game_list is not none %}
-        <option value="delete" class="text_danger alert-danger">Удалить</option>
-        {% endif %}
-      </select>
-      <select class="form-select" name="rated">
-        <option value="none"
-                {% if user_game_list is none or user_game_list.rated is none %}
-                selected
-                {% endif %}
-        >
-          Оценка
-        </option>
-        <option value="1" {% if user_game_list.rated == 1 %}selected{% endif %}>1</option>
-        <option value="2" {% if user_game_list.rated == 2 %}selected{% endif %}>2</option>
-        <option value="3" {% if user_game_list.rated == 3 %}selected{% endif %}>3</option>
-        <option value="4" {% if user_game_list.rated == 4 %}selected{% endif %}>4</option>
-        <option value="5" {% if user_game_list.rated == 5 %}selected{% endif %}>5</option>
-        <option value="6" {% if user_game_list.rated == 6 %}selected{% endif %}>6</option>
-        <option value="7" {% if user_game_list.rated == 7 %}selected{% endif %}>7</option>
-        <option value="8" {% if user_game_list.rated == 8 %}selected{% endif %}>8</option>
-        <option value="9" {% if user_game_list.rated == 9 %}selected{% endif %}>9</option>
-        <option value="10" {% if user_game_list.rated == 10 %}selected{% endif %}>10</option>
-      </select>
-      <input class="btn btn-primary" type="submit" value="Добавить в список">
-    </form>
-  {% endif %}
   </div>
 {% endblock %}

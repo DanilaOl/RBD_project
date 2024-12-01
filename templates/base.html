@@ -13,7 +13,9 @@
   <div class="container py-5">
     {% block content %}{% endblock %}
   </div>
+  {% include 'includes/toast-container.html' %}
 
   {% include 'includes/footer.html' %}
+  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>

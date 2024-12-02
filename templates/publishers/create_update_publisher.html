@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if update %}
+    Обновление {{ publisher.publisher_name }} - Game-Kiroku
+  {% else %}
+    Создание издателя
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <form method="post" class="col-5">
+    <div class="mb-3">
+      <label for="publisher_name_input" class="form-label">Название</label>
+      <input type="text" class="form-control" id="publisher_name_input" name="publisher_name" required
+              {% if update %}
+             value="{{ publisher.publisher_name }}"
+              {% endif %}
+      >
+    </div>
+    <div class="mb-3">
+      <label for="country_input" class="form-label">Страна</label>
+      <input type="text" class="form-control" id="country_input" name="country"
+              {% if update and publisher.country %}
+             value="{{ publisher.country }}"
+              {% endif %}
+      >
+    </div>
+    <button type="submit" class="btn btn-primary">
+      {% if update %}
+        Изменить
+      {% else %}
+        Создать
+      {% endif %}
+    </button>
+  </form>
+{% endblock %}

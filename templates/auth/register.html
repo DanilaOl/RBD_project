@@ -4,18 +4,11 @@
 {% endblock %}
 
 {% block content %}
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      {% for message in messages %}
-        <p class="text-danger m-auto alert-danger text-center w-50 fs-4">{{ message }}</p>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
   <form method="post" class="text-center border p-3 w-50 m-auto">
     <label for="username_input" class="form-label">Логин</label>
     <input type="text" class="form-control" name="username" id="username_input">
     <label for="email_input" class="form-label">E-mail</label>
-    <input type="email" name="email" id="email_input">
+    <input type="email" class="form-control" name="email" id="email_input">
     <label for="password_input" class="form-label">Пароль</label>
     <input type="password" class="form-control" name="password" id="password_input">
     <label for="password_repeat_input" class="form-label">Повторите пароль</label>

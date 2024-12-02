@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}
+	{% if update %}
+    Обновление {{ genre.genre_name }} - Game-Kiroku
+  {% else %}
+    Создание жанра
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+	<form method="post" class="col-5">
+    <div class="mb-3">
+      <label for="genre_name_input" class="form-label">Название</label>
+      <input type="text" class="form-control" id="genre_name_input" name="genre_name" required
+              {% if update %}
+             value="{{ genre.genre_name }}"
+              {% endif %}
+      >
+    </div>
+    <button type="submit" class="btn btn-primary">
+      {% if update %}
+        Изменить
+      {% else %}
+        Создать
+      {% endif %}
+    </button>
+  </form>
+{% endblock %}

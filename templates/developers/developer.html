@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}
+	Разработчик {{ developer.studio_name }} - Gabe-Kiroku
+{% endblock %}
+
+{% block content %}
+	<h2><b>{{ developer.studio_name }}</b></h2>
+  {% if developer.country %}
+  	<p>{{ developer.country }}</p>
+  {% endif %}
+
+  {% if user.role == 'admin' %}
+    <a href="{{ url_for('update_developer', id_developer=developer.id_developer) }}">Изменить</a>
+    <a href="{{ url_for('delete_developer', id_developer=developer.id_developer) }}">Удалить</a>
+  {% endif %}
+
+  {% if games %}
+    <p class="fs-4"><b>Игры разработчика</b></p>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th scope="col">Id</th>
+          <th scope="col">Название</th>
+          <th scope="col">Дата выхода</th>
+          <th scope="col">Издатель</th>
+          <th scope="col">Рейтинг</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for game in games %}
+        	<tr>
+            <td>{{ game.id_game }}</td>
+            <td><a href="{{ url_for('game_detail', id_game=game.id_game) }}">{{ game.game_name }}</a></td>
+            <td>{{ game.release_date }}</td>
+            <td>
+              {% if game.publisher %}
+              	{{ game.publisher }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <td>{{ game.rating }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

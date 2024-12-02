@@ -1,77 +1,103 @@
 {% extends 'base.html' %}
 
 {% block title %}
-Игры - Game-Kiroku
+  Игры - Game-Kiroku
 {% endblock %}
 
 {% block content %}
-  <form method="GET">
+  <form method="GET" class="mb-3">
     <label for="search_text_input" class="form-label">Поиск</label>
-    <input type="text" id="search_text_input" name="search_text" class="form-control">
+    <input type="text" id="search_text_input" name="search_text" class="form-control mb-3">
     <p class="mb-1">Параметр сортировки</p>
     <input type="radio" class="btn-check" name="order_by" id="order_id_game" value="id_game" autocomplete="off" checked>
     <label class="btn btn-primary" for="order_id_game">id</label>
 
     <input type="radio" class="btn-check" name="order_by" id="order_rating" value="rating" autocomplete="off">
-    <label class="btn btn-primary" for="order_rating">Rating</label>
+    <label class="btn btn-primary" for="order_rating">Рейтинг</label>
 
-    <input type="radio" class="btn-check" name="order_by" id="order_release_date" value="release_date" autocomplete="off">
-    <label class="btn btn-primary" for="order_release_date">Release Date</label>
+    <input type="radio" class="btn-check" name="order_by" id="order_release_date" value="release_date"
+           autocomplete="off">
+    <label class="btn btn-primary" for="order_release_date">Дата выхода</label>
 
     <p class="mb-1 mt-3">Порядок сортировки</p>
-    <input type="radio" class="btn-check" name="order_direction" id="order_dir_asc" value="asc" autocomplete="off" checked>
-    <label class="btn btn-primary" for="order_dir_asc">Ascending</label>
+    <input type="radio" class="btn-check" name="order_direction" id="order_dir_asc" value="asc" autocomplete="off"
+           checked>
+    <label class="btn btn-primary" for="order_dir_asc">По возрастанию</label>
 
     <input type="radio" class="btn-check" name="order_direction" id="order_dir_desc" value="desc" autocomplete="off">
-    <label class="btn btn-primary" for="order_dir_desc">Descending</label>
+    <label class="btn btn-primary" for="order_dir_desc">По убыванию</label>
     <br>
 
     <label for="developer_select" class="form-label mt-3">Разработчик</label>
     <select name="id_developer" class="form-select" id="developer_select">
-        <option value="none" selected>Developer</option>
-        {% for developer in developers %}
-            <option value="{{ developer.id_developer }}">{{ developer.studio_name }}</option>
-        {% endfor %}
+      <option value="none" selected>Developer</option>
+      {% for developer in developers %}
+        <option value="{{ developer.id_developer }}">{{ developer.studio_name }}</option>
+      {% endfor %}
     </select>
 
     <label for="publisher_select" class="form-label mt-3">Издатель</label>
     <select name="id_publisher" class="form-select" id="publisher_select">
-        <option value="none" selected>Publisher</option>
-        {% for publisher in publishers %}
-            <option value="{{ publisher.id_publisher }}">{{ publisher.publisher_name }}</option>
-        {% endfor %}
+      <option value="none" selected>Publisher</option>
+      {% for publisher in publishers %}
+        <option value="{{ publisher.id_publisher }}">{{ publisher.publisher_name }}</option>
+      {% endfor %}
     </select>
     <input class="btn btn-primary mt-3" type="submit" value="Поиск">
   </form>
-  <table class="table table-striped mt-5">
+  <h2><b>Игры</b></h2>
+  <table class="table table-hover">
     <thead>
-      <tr>
-        <th scope="col">Id</th>
-        <th scope="col">Название</th>
-        <th scope="col">Дата выхода</th>
-        <th scope="col">Рейтинг</th>
-        <th scope="col">Разработчик</th>
-        <th scope="col">Издатель</th>
-        {% if user['role'] == 'admin' %}
+    <tr>
+      <th scope="col">Id</th>
+      <th scope="col">Название</th>
+      <th scope="col">Дата выхода</th>
+      <th scope="col">Рейтинг</th>
+      <th scope="col">Разработчик</th>
+      <th scope="col">Издатель</th>
+      {% if user['role'] == 'admin' %}
         <th scope="col">Действия</th>
-        {% endif %}
-      </tr>
+      {% endif %}
+    </tr>
     </thead>
     <tbody>
-      {% for game in games %}
-        <tr>
-          <td>{{ game.id_game }}</td>
-          <td><a href="{{ url_for('game_detail', id_game=game.id_game) }}">{{ game.game_name }}</a></td>
-          <td>{{ game.release_date }}</td>
-          <td>{{ game.rating }}</td>
-          <td>{{ game.developer }}</td>
-          <td>{{ game.publisher }}</td>
-          {% if user['role'] == 'admin' %}
-          <td><a href="{{ url_for('delete_game', id_game=game.id_game) }}">Удалить</a></td>
+    {% for game in games %}
+      <tr>
+        <td class="col-1">{{ game.id_game }}</td>
+        <td><a href="{{ url_for('game_detail', id_game=game.id_game) }}">{{ game.game_name }}</a></td>
+        <td>{{ game.release_date }}</td>
+        <td>{{ game.rating }}</td>
+        <td>{{ game.developer }}</td>
+        <td>
+          {% if game.publisher %}
+            {{ game.publisher }}
+          {% else %}
+            -
           {% endif %}
-        </tr>
 
-      {% endfor %}
+        </td>
+        {% if user['role'] == 'admin' %}
+          <td class="d-flex gap-3">
+            <a href="{{ url_for('update_game', id_game=game.id_game) }}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-pencil"
+                   viewBox="0 0 16 16">
+                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+              </svg>
+
+            </a>
+            <a href="{{ url_for('delete_game', id_game=game.id_game) }}" class="text-danger">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg"
+                   viewBox="0 0 16 16">
+                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+              </svg>
+            </a>
+          </td>
+        {% endif %}
+      </tr>
+    {% endfor %}
     </tbody>
   </table>
+  {% if user.role == 'admin' %}
+    <p><a href="{{ url_for('create_game') }}">Добавить игру</a></p>
+  {% endif %}
 {% endblock %}

@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 
 {% block title %}
-  Обновление {{ game.game_name }} - Game-Kiroku
+  {% if update %}
+    Обновление {{ game.game_name }} - Game-Kiroku
+  {% else %}
+    Создание игры - Game-Kiroku
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -16,7 +20,9 @@
     </div>
     <div class="mb-3">
       <label for="description_input" class="form-label">Описание</label>
-      <textarea id="description_input" class="form-control" name="game_description">{% if update and game.description is not none %}{{ game.description }}{% endif %}</textarea>
+      <textarea id="description_input" class="form-control"
+                name="game_description">{% if update and game.description is not none %}
+        {{ game.description }}{% endif %}</textarea>
     </div>
     <div class="mb-3">
       <label for="release_date_input" class="form-label">Дата выхода</label>
@@ -38,9 +44,22 @@
             {{ developer.studio_name }}
           </option>
         {% endfor %}
-
       </select>
     </div>
+    {% if update %}
+      <div class="mb-3">
+        <label for="game_genres_input" class="form-label">Жанры</label>
+        <select name="genres" id="game_genres_input" class="form-select" multiple size="{{ all_genres|length }}">
+          {% for genre in all_genres %}
+            <option value="{{ genre.id_genre }}"
+                    {% if genre.id_genre in games_genres_ids %}
+                    selected
+                    {% endif %}
+            >{{ genre.genre_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
     <div class="mb-3">
       <label for="game_publisher_input" class="form-label">Издатель</label>
       <select class="form-select" name="game_publisher" id="game_publisher_input">

@@ -5,21 +5,34 @@
 
 
   <div class="row">
-    <ul class="col">
-      <li>{{ game.game_name }}</li>
-      <li>Рейтинг: {{ game.rating }}</li>
-      <li>Дата выхода: {{ game.release_date }}</li>
-      <li>Разработчик: {{ game.developer }}</li>
+    <div class="col">
+      <h3>{{ game.game_name }}</h3>
+      <p>Рейтинг: {{ game.rating }}</p>
+      <p>Дата выхода: {{ game.release_date }}</p>
+      <p>Разработчик: {{ game.developer }}</p>
       {% if game.publisher %}
-        <li>Издатель: {{ game.publisher }}</li>
+        <p>Издатель: {{ game.publisher }}</p>
       {% endif %}
       {% if game.description %}
-        <li>{{ game.description }}</li>
+        <p>{{ game.description }}</p>
       {% endif %}
-    </ul>
+      {% if genres %}
+        <p class="fw-bold mb-1">Жанры</p>
+        <ul>
+          {% for genre in genres %}
+            <li>{{ genre.genre_name }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if user.role == 'admin' %}
+        <p><a href="{{ url_for('update_game', id_game=game.id_game) }}">Изменить</a></p>
+        <p><a href="{{ url_for('delete_game', id_game=game.id_game) }}">Удалить</a></p>
+      {% endif %}
+    </div>
 
     {% if user and user['role'] != 'admin' %}
-      <form method="post" class="col-4">
+      <form method="post" class="col-4"
+            action="{{ url_for('update_list', id_game=game.id_game, id_user=user.id_user) }}">
         <select class="form-select" name="list_type">
           <option value="planned"
                   {% if user_game_list is none or user_game_list.list_type == 'planned' %}
@@ -60,4 +73,40 @@
       </form>
     {% endif %}
   </div>
+  {% if comments %}
+    <p class="fw-bold mb-1">Комментарии</p>
+    <div class="row mb-3">
+      <div class="col">
+        {% for comment in comments %}
+          <div class="row border-bottom border-1 pb-2 pt-2">
+            <div class="col-2">
+              <a href="{{ url_for('user_detail', id_user=comment.id_user) }}">
+                {{ comment.username }}
+              </a>
+            </div>
+            <div class="col-9">{{ comment.text }}</div>
+            {% if user.id_user == comment.id_user or user.role == 'admin' %}
+              <div class="col-1">
+                <a href="{{ url_for('delete_comment', id_game=game.id_game, id_user=comment.id_user) }}"
+                   class="text-danger"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-x-lg"
+                       viewBox="0 0 16 16">
+                    <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                  </svg>
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+  {% if user and user.role != 'admin' %}
+    <form action="{{ url_for('create_comment', id_game=game.id_game, id_user=user.id_user) }}" method="post">
+      <label for="comment_text_input" class="form-label fw-bold mb-1">Оставить комментарий</label>
+      <textarea name="comment_text" id="comment_text_input" class="form-control mb-3"></textarea>
+      <button type="submit" class="btn btn-primary">Отправить</button>
+    </form>
+  {% endif %}
 {% endblock %}

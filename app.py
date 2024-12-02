@@ -2,8 +2,6 @@ import hashlib
 
 from flask import Flask, request, render_template, session, redirect, url_for, flash
 from flask.sessions import SessionMixin
-# from flask_login import UserMixin, LoginManager, current_user, login_required, logout_user
-# from flask_security import RoleMixin
 
 import db_service
 
@@ -20,7 +18,6 @@ def get_session_user(_session: SessionMixin):
 @app.route('/')
 def games():
     user = get_session_user(session)
-    search_text = None
 
     parameters = dict(request.args)
     if 'id_developer' in parameters and parameters['id_developer'] == 'none':
@@ -51,44 +48,10 @@ def games():
 def game_detail(id_game):
     session_user = get_session_user(session)
 
-    if request.method == 'POST':
-        if session_user['role'] == 'admin':
-            flash(
-                'Администраторам не позволяется добавлять игры в списки',
-                category='error'
-            )
-            return redirect(url_for('game_detail', id_game=id_game))
-
-        list_type = request.form['list_type']
-
-        if list_type == 'delete':
-            return redirect(url_for(
-                'delete_list',
-                id_game=id_game,
-                id_user=session_user['id_user']
-            ))
-
-        rated = request.form['rated']
-
-        if rated == 'none':
-            rated = None
-
-        list_item = db_service.get_list(id_game, session_user['id_user'])
-
-        try:
-            if not list_item:
-                db_service.add_list(id_game, session_user['id_user'],
-                                    list_type, rated)
-            else:
-                db_service.update_list(id_game, session_user['id_user'],
-                                       list_type, rated)
-        except Exception as e:
-            flash('Что-то пошло не так', category='error')
-        else:
-            flash('Список обновлён', category='success')
-        return redirect(url_for('game_detail', id_game=id_game))
-
     game = db_service.get_game(id_game)
+    games_genres = db_service.get_genre_of_game(id_game=id_game)
+    comments = db_service.get_comments(id_game=id_game)
+
     user_game_list = None
 
     if session_user and session_user['role'] != 'admin':
@@ -101,7 +64,7 @@ def game_detail(id_game):
     return render_template(
         'games/game.html',
         game=game, user_game_list=user_game_list,
-        user=session_user,
+        user=session_user, genres=games_genres, comments=comments
     )
 
 
@@ -118,7 +81,7 @@ def delete_game(id_game):
 
     try:
         db_service.delete_game(id_game)
-    except Exception:
+    except Exception as e:
         flash('Что-то пошло не так', 'error')
     else:
         flash('Игра успешно удалена', 'success')
@@ -144,6 +107,8 @@ def update_game(id_game):
         game_release_date = request.form['game_release_date']
         game_developer_id = request.form['game_developer']
         game_publisher_id = request.form['game_publisher']
+        new_game_genres_ids = request.form.getlist('genres')
+        new_game_genres_ids = [int(genre_id) for genre_id in new_game_genres_ids]
 
         if game_description == '':
             game_description = None
@@ -151,12 +116,24 @@ def update_game(id_game):
         if game_publisher_id == 'none':
             game_publisher_id = None
 
+        current_game_genres = db_service.get_genre_of_game(id_game=id_game)
+        current_game_genres_ids = [genre['id_genre'] for genre in current_game_genres]
+
+        genres_to_add = list(set(new_game_genres_ids) - set(current_game_genres_ids))
+        genres_to_remove = list(set(current_game_genres_ids) - set(new_game_genres_ids))
+
+        for to_add in genres_to_add:
+            db_service.add_genre_of_game(id_game, to_add)
+
+        for to_remove in genres_to_remove:
+            db_service.delete_genre_of_game(id_game, to_remove)
+
         try:
             db_service.update_game(
                 id_game, game_name, game_description, game_release_date,
                 game_publisher_id, game_developer_id
             )
-        except Exception:
+        except Exception as e:
             flash('Что-то пошло не так', 'error')
             return redirect(url_for('update_game', id_game=id_game))
         else:
@@ -166,6 +143,9 @@ def update_game(id_game):
     game = db_service.get_game(id_game)
     all_publishers = db_service.get_all_publishers()
     all_developers = db_service.get_all_developers()
+    games_genres = db_service.get_genre_of_game(id_game=id_game)
+    all_genres = db_service.get_all_genres()
+    games_genres_ids = [genre['id_genre'] for genre in games_genres]
 
     return render_template(
         'games/create_update_game.html',
@@ -173,15 +153,17 @@ def update_game(id_game):
         game=game,
         publishers=all_publishers,
         developers=all_developers,
+        games_genres_ids=games_genres_ids,
+        all_genres=all_genres,
         update=True
     )
 
 
 @app.route('/games/create', methods=['GET', 'POST'])
 def create_game():
-    user = get_session_user(session)
+    session_user = get_session_user(session)
 
-    if not user or user['role'] != 'admin':
+    if not session_user or session_user['role'] != 'admin':
         flash(
             'Вы должны быть администратором, чтобы создать игру',
             category='error'
@@ -203,7 +185,7 @@ def create_game():
 
         try:
             db_service.add_game(game_name, game_description, game_release_date, game_developer_id, id_publisher=game_publisher_id)
-        except Exception:
+        except Exception as e:
             flash('Что-то пошло не так', 'error')
             return redirect(url_for('create_game'))
         else:
@@ -215,11 +197,8 @@ def create_game():
 
     return render_template(
         'games/create_update_game.html',
-        user=user,
-        game=None,
-        publishers=all_publishers,
-        developers=all_developers,
-        update=False
+        user=session_user, game=None, publishers=all_publishers,
+        developers=all_developers, update=False
     )
 
 
@@ -338,56 +317,247 @@ def update_user(id_user):
 
 @app.route('/users/<int:id_user>/delete', methods=['GET', 'POST'])
 def delete_user(id_user):
-    pass
-    # session_user = session.get('user')
-    #
-    # if session_user and (session_user['id_user'] == id_user
-    #                      or session_user['role'] == 'admin'):
-    #     db_service.delete_user(id_user)
-    #     flash('User deleted!', 'success')
-    # else:
-    #     flash('You are not allowed to delete this user', 'danger')
-    #
-    # return redirect(url_for('games'))
+    session_user = get_session_user(session)
+    if not session_user:
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('user_detail', id_user=id_user))
+
+    if session_user['role'] != 'admin' and session_user['id_user'] != id_user:
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('user_detail', id_user=id_user))
+
+    try:
+        db_service.delete_user(id_user)
+    except Exception as e:
+        flash('Что-то пошло не так', 'error')
+        return redirect(url_for('user_detail', id_user=id_user))
+    else:
+        flash('Пользователь успешно удалён', 'success')
+
+        if session_user['role'] == 'admin':
+            return redirect(url_for('users'))
+        else:
+            session['user'] = {}
+            return redirect(url_for('games'))
+
 
 @app.route('/developers')
 def developers():
+    session_user = get_session_user(session)
     all_developers = db_service.get_all_developers()
 
     return render_template(
         'developers/developers.html',
-        user=session.get('user', None), developers=all_developers
+        user=session_user, developers=all_developers
     )
 
 
 @app.route('/developers/<int:id_developer>')
 def developer_detail(id_developer):
-    return 'asdf'
+    session_user = get_session_user(session)
+    developer = db_service.get_developer(id_developer)
+    developer_games = db_service.get_all_games(id_developer=id_developer)
+
+    return render_template(
+        'developers/developer.html',
+        user=session_user,
+        developer=developer,
+        games=developer_games
+    )
 
 
 @app.route('/developers/<int:id_developer>/delete')
 def delete_developer(id_developer):
-    return 'asdf'
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('developer_detail',
+                                id_developer=id_developer))
+
+    try:
+        db_service.delete_developer(id_developer)
+    except Exception as e:
+        flash('Что-то пошло не так', 'error')
+        return redirect(url_for('developer_detail',
+                                id_developer=id_developer))
+    else:
+        flash('Разработчик удалён', 'success')
+        return redirect(url_for('developers'))
+
+
+@app.route('/developers/<int:id_developer>/update', methods=['GET', 'POST'])
+def update_developer(id_developer):
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('developer_detail',
+                                id_developer=id_developer))
+
+    if request.method == 'POST':
+        studio_name = request.form['studio_name']
+        country = request.form['country']
+
+        if country == '':
+            country = None
+
+        try:
+            db_service.update_developer(id_developer, studio_name, country)
+        except Exception as e:
+            flash('Что-то пошло не так', 'error')
+            return redirect(url_for('update_developer',
+                                    id_developer=id_developer))
+        else:
+            flash('Информация о разработчике успешно обновлена', 'success')
+            return redirect(url_for('developer_detail',
+                                    id_developer=id_developer))
+
+    developer = db_service.get_developer(id_developer)
+
+    return render_template(
+        'developers/create_update_developer.html',
+        user=session_user, developer=developer, update=True
+    )
+
+
+@app.route('/developers/create', methods=['GET', 'POST'])
+def create_developer():
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('developers'))
+
+    if request.method == 'POST':
+        studio_name = request.form['studio_name']
+        country = request.form['country']
+
+        if country == '':
+            country = None
+
+        try:
+            db_service.add_developer(studio_name, country)
+        except Exception as e:
+            flash('Что-то пошло не так', 'error')
+            return redirect(url_for('create_developer'))
+        else:
+            flash('Разработчик создан', 'success')
+            return redirect(url_for('developers'))
+
+    return render_template(
+        'developers/create_update_developer.html',
+        user=session_user, developer=None, update=False
+    )
 
 
 @app.route('/publishers')
 def publishers():
+    session_user = get_session_user(session)
     all_publishers = db_service.get_all_publishers()
+
     return render_template(
         'publishers/publishers.html',
-        user=session.get('user', None),
-        publishers=all_publishers
+        user=session_user, publishers=all_publishers
     )
 
 
 @app.route('/publishers/<int:id_publisher>')
 def publisher_detail(id_publisher):
-    return 'asdf'
+    session_user = get_session_user(session)
+    publisher = db_service.get_publisher(id_publisher)
+    publisher_games = db_service.get_all_games(id_publisher=id_publisher)
+
+    return render_template(
+        'publishers/publisher.html',
+        user=session_user, publisher=publisher,
+        games=publisher_games
+    )
 
 
 @app.route('/publishers/<int:id_publisher>/delete')
 def delete_publisher(id_publisher):
-    return 'asdf'
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('publisher_detail',
+                                id_publisher=id_publisher))
+
+    try:
+        db_service.delete_publisher(id_publisher)
+    except Exception as e:
+        flash('Что-то пошло не так', 'error')
+        return redirect(url_for('publisher_detail',
+                                id_publisher=id_publisher))
+    else:
+        flash('Издатель удалён', 'success')
+        return redirect(url_for('publishers'))
+
+
+@app.route('/publishers/<int:id_publisher>/update', methods=['GET', 'POST'])
+def update_publisher(id_publisher):
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('publisher_detail',
+                                id_publisher=id_publisher))
+
+    if request.method == 'POST':
+        publisher_name = request.form['publisher_name']
+        country = request.form['country']
+
+        if country == '':
+            country = None
+
+        try:
+            db_service.update_publisher(id_publisher, publisher_name, country)
+        except Exception as e:
+            flash('Что-то пошло не так', 'error')
+            return redirect(url_for('update_publisher',
+                                    id_publisher=id_publisher))
+        else:
+            flash('Информация об издателе успешно обновлена', 'success')
+            return redirect(url_for('publisher_detail',
+                                    id_publisher=id_publisher))
+
+    publisher = db_service.get_publisher(id_publisher)
+
+    return render_template(
+        'publishers/create_update_publisher.html',
+        user=session_user, publisher=publisher, update=True
+    )
+
+
+@app.route('/publishers/create', methods=['GET', 'POST'])
+def create_publisher():
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('publishers'))
+
+    if request.method == 'POST':
+        publisher_name = request.form['publisher_name']
+        country = request.form['country']
+
+        if country == '':
+            country = None
+
+        try:
+            db_service.add_publisher(publisher_name, country)
+        except Exception as e:
+            flash('Что-то пошло не так', 'error')
+            return redirect(url_for('create_publisher'))
+        else:
+            flash('Издатель создан', 'success')
+            return redirect(url_for('publishers'))
+
+    return render_template(
+        'publishers/create_update_publisher.html',
+        user=session_user, publisher=None, update=False
+    )
 
 
 @app.route('/genres')
@@ -402,16 +572,87 @@ def genres():
 
 @app.route('/genres/<int:id_genre>')
 def genre_detail(id_genre):
+    session_user = get_session_user(session)
     genre = db_service.get_genre(id_genre)
-    games_with_genre = db_service.get_genre_of_game(id_genre)
+    games_with_genre = db_service.get_genre_of_game(id_genre=id_genre)
+
     return render_template(
-        'genres/'
+        'genres/genre.html',
+        user=session_user, genre=genre,
+        games=games_with_genre
     )
 
 
 @app.route('/genres/<int:id_genre>/delete')
 def delete_genre(id_genre):
-    return 'asdf'
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('genre_detail', id_genre=id_genre))
+
+    try:
+        db_service.delete_genre(id_genre)
+    except Exception as e:
+        flash('Что-то пошло не так', 'error')
+        return redirect(url_for('genre_detail', id_genre=id_genre))
+    else:
+        flash('Жанр удалён', 'success')
+        return redirect(url_for('genres'))
+
+
+@app.route('/genres/<int:id_genre>/update', methods=['GET', 'POST'])
+def update_genre(id_genre):
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('genre_detail', id_genre=id_genre))
+
+    if request.method == 'POST':
+        genre_name = request.form['genre_name']
+
+        try:
+            db_service.update_genre(id_genre, genre_name)
+        except Exception as e:
+            flash('Что-то пошло не так', 'error')
+            return redirect(url_for('update_genre', id_genre=id_genre))
+        else:
+            flash('Информация о жанре успешно обновлена', 'success')
+            return redirect(url_for('genre_detail', id_genre=id_genre))
+
+    genre = db_service.get_genre(id_genre)
+
+    return render_template(
+        'genres/create_update_genre.html',
+        user=session_user, genre=genre, update=True
+    )
+
+
+@app.route('/genres/create', methods=['GET', 'POST'])
+def create_genre():
+    session_user = get_session_user(session)
+
+    if not session_user or session_user['role'] != 'admin':
+        flash('Вам недоступна эта операция', 'error')
+        return redirect(url_for('genres'))
+
+    if request.method == 'POST':
+        genre_name = request.form['genre_name']
+
+        try:
+            db_service.add_genre(genre_name)
+        except Exception as e:
+            flash('Что-то пошло не так', 'error')
+            return redirect(url_for('create_genre'))
+        else:
+            flash('Жанр создан', 'success')
+            return redirect(url_for('genres'))
+
+    return render_template(
+        'genres/create_update_genre.html',
+        user=session_user, genre=None, update=False
+    )
 
 
 @app.route('/lists/<int:id_game>_<int:id_user>/delete')
@@ -423,6 +664,97 @@ def delete_list(id_game, id_user):
     else:
         flash('Игра удалена из списка', 'success')
     return redirect(url_for('game_detail', id_game=id_game))
+
+
+@app.route('/lists/<int:id_game>_<int:id_user>/update', methods=['POST'])
+def update_list(id_game, id_user):
+    session_user = get_session_user(session)
+
+    if not session_user:
+        flash('Вы должны быть авторизованы, чтобы обновить списки', 'error')
+        return redirect(url_for('game_detail', id_game=id_game))
+
+    if session_user['role'] == 'admin':
+        flash('Администраторам не позволяется добавлять игры в списки')
+        return redirect(url_for('game_detail', id_game=id_game))
+
+    list_type = request.form['list_type']
+
+    if list_type == 'delete':
+        return redirect(url_for('delete_list',
+                                id_game=id_game, id_user=id_user))
+
+    rated = request.form['rated']
+
+    if rated == 'none':
+        rated = None
+
+    list_item = db_service.get_list(id_game, id_user)
+
+    try:
+        if not list_item:
+            db_service.add_list(id_game, id_user, list_type, rated)
+        else:
+            db_service.update_list(id_game, id_user, list_type, rated)
+
+    except Exception as e:
+        flash('Что-то пошло не так', 'error')
+    else:
+        flash('Список обновлён', 'success')
+    return redirect(url_for('game_detail', id_game=id_game))
+
+
+@app.route('/comments/<int:id_game>_<int:id_user>/create', methods=['POST'])
+def create_comment(id_game, id_user):
+    session_user = get_session_user(session)
+
+    if not session_user:
+        flash('Вы должны быть авторизованы, чтобы оставить комментарий', 'error')
+        return redirect(url_for('game_detail', id_game=id_game))
+
+    if session_user['role'] == 'admin':
+        flash('Администраторам не позволяется оставлять комментарии')
+        return redirect(url_for('game_detail', id_game=id_game))
+
+    comment_text = request.form['comment_text']
+
+    existing_comment = db_service.get_comments(id_game, id_user)
+
+    if existing_comment:
+        flash('Правилами сайта запрещено оставлять более одного комментария для игры', 'error')
+        return redirect(url_for('game_detail', id_game=id_game))
+
+    try:
+        db_service.add_comment(id_game, id_user, comment_text)
+    except Exception as e:
+        flash('Что-то пошло не так', 'error')
+    else:
+        flash('Комментарий добавлен', 'success')
+
+    return redirect(url_for('game_detail', id_game=id_game))
+
+
+@app.route('/comments/<int:id_game>_<int:id_user>/delete')
+def delete_comment(id_game, id_user):
+    session_user = get_session_user(session)
+
+    if not session_user:
+        flash('Вы должны быть авторизованы', 'error')
+        return redirect(url_for('game_detail', id_game=id_game))
+
+    if session_user['role'] != 'admin' and session_user['id_user'] != id_user:
+        flash('Вам нельзя удалить чужой комментарий', 'error')
+        return redirect(url_for('game_detail', id_game=id_game))
+
+    try:
+        db_service.delete_comment(id_game, id_user)
+    except Exception as e:
+        flash('Что-то пошло не так', 'error')
+    else:
+        flash('Комментарий удалён', 'success')
+
+    return redirect(url_for('game_detail', id_game=id_game))
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -467,8 +799,8 @@ def register():
             return redirect(url_for('register'))
 
         try:
-            db_service.add_user(username, email, password)
-        except Exception:
+            db_service.add_user(username, password, email)
+        except Exception as e:
             flash('Аккаунт уже существует', 'error')
             return redirect(url_for('register'))
         else:

@@ -8,7 +8,10 @@
   <h2><b>{{ user_info.username }}</b></h2>
   <p>{{ user_info.email }}</p>
   {% if user.id_user == user_info.id_user and user.role != 'admin' %}
-    <a href="{{ url_for('update_user', id_user=user.id_user) }}">Изменить</a>
+    <a href="{{ url_for('update_user', id_user=user_info.id_user) }}">Изменить</a>
+  {% endif %}
+  {% if user.id_user == user_info.id_user or user.role == 'admin' %}
+    <a href="{{ url_for('delete_user', id_user=user_info.id_user) }}">Удалить пользователя</a>
   {% endif %}
 
   {% if categorized_user_lists %}
@@ -28,8 +31,8 @@
                 Пройдено
               {% endif %}
             </p>
-            <table class="table table-hover table-borderless">
-              <thead>
+            <table class="table table-hover">
+              <thead class="table-light">
                 <tr>
                   <th scope="col" class="">Название</th>
                   <th scope="col">Оценка</th>

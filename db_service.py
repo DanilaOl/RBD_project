@@ -133,13 +133,18 @@ def add_game(
     connection = get_connection()
     query = '''INSERT INTO game (game_name, description, release_date, 
     rating, id_developer, id_publisher)
-    VALUES (%s, %s, %s, %s, %s)'''
+    VALUES (%s, %s, %s, %s, %s, %s)'''
+
+    id_developer = int(id_developer)
+    if id_publisher is not None:
+        id_publisher = int(id_publisher)
 
     try:
         with connection.cursor() as cursor:
             cursor.execute(
-                query, (game_name, description, release_date,
-                        rating, id_developer, id_publisher)
+                query,
+                (game_name, description, release_date,
+                 rating, id_developer, id_publisher)
             )
         connection.commit()
     finally:
@@ -310,7 +315,7 @@ def delete_user(id_user):
 
 def get_all_developers():
     connection = get_connection()
-    query = "SELECT id_developer, studio_name, country FROM developer"
+    query = "SELECT id_developer, studio_name, country FROM developer ORDER BY id_developer"
 
     try:
         with connection.cursor() as cursor:
@@ -468,18 +473,21 @@ def delete_publisher(id_publisher):
 
 def get_comments(id_game=None, id_user=None):
     connection = get_connection()
-    query = '''SELECT id_game, id_user, comment
-    FROM comment'''
+    query = '''SELECT comment.id_game, comment.id_user, comment.text, 
+    game.game_name, users.username
+    FROM comment
+    JOIN game ON comment.id_game = game.id_game
+    JOIN users ON comment.id_user = users.id_user'''
 
     filter_list = []
     filter_args = []
 
     if id_game is not None:
-        filter_list.append('id_game=%s')
+        filter_list.append('comment.id_game=%s')
         filter_args.append(id_game)
 
     if id_user is not None:
-        filter_list.append('id_user=%s')
+        filter_list.append('comment.id_user=%s')
         filter_args.append(id_user)
 
     if filter_list:
@@ -488,12 +496,12 @@ def get_comments(id_game=None, id_user=None):
     try:
         with connection.cursor() as cursor:
             if filter_list:
-                cursor.execute(query, tuple(filter_list))
+                cursor.execute(query, tuple(filter_args))
             else:
                 cursor.execute(query)
             comments = cursor.fetchall()
 
-        column_names = ['id_game', 'id_user', 'comment']
+        column_names = ['id_game', 'id_user', 'text', 'game_name', 'username']
         comments_dict = []
 
         for comment in comments:
@@ -509,7 +517,7 @@ def get_comments(id_game=None, id_user=None):
 
 def add_comment(id_game, id_user, comment):
     connection = get_connection()
-    query = "INSERT INTO comment (id_game, id_user, comment) VALUES (%s, %s, %s)"
+    query = "INSERT INTO comment (id_game, id_user, text) VALUES (%s, %s, %s)"
 
     try:
         with connection.cursor() as cursor:
@@ -654,17 +662,21 @@ def add_admin(login, password):
 
 def get_genre_of_game(id_game=None, id_genre=None):
     connection = get_connection()
-    query = "SELECT id_game, id_genre FROM genre_of_game"
+    query = '''SELECT genre_of_game.id_game, genre_of_game.id_genre,
+    game.game_name, genre.genre_name
+    FROM genre_of_game
+    JOIN genre ON genre_of_game.id_genre = genre.id_genre
+    JOIN game ON genre_of_game.id_game = game.id_game'''
 
     filter_list = []
     filter_args = []
 
     if id_game is not None:
-        filter_list.append('id_game=%s')
+        filter_list.append('genre_of_game.id_game=%s')
         filter_args.append(id_game)
 
     if id_genre is not None:
-        filter_list.append('id_genre=%s')
+        filter_list.append('genre_of_game.id_genre=%s')
         filter_args.append(id_genre)
 
     if filter_list:
@@ -673,12 +685,12 @@ def get_genre_of_game(id_game=None, id_genre=None):
     try:
         with connection.cursor() as cursor:
             if filter_list:
-                cursor.execute(query, tuple(filter_list))
+                cursor.execute(query, tuple(filter_args))
             else:
                 cursor.execute(query)
             genres_of_games = cursor.fetchall()
 
-        column_names = ['id_game', 'id_genre']
+        column_names = ['id_game', 'id_genre', 'game_name', 'genre_name']
         genres_of_games_dict = []
 
         for genre_of_game in genres_of_games:
